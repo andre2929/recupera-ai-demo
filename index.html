@@ -410,13 +410,15 @@ function chatHTML(){
   '<input id="cin" placeholder="Digite sua mensagem..." onkeydown="if(event.key===\'Enter\')enviarMsg()">'+
   '<button class="cb snd" onclick="enviarMsg()">&#10148;</button></div></div>';
 }
-function vozHTML(){
+function vozHTML(src){
  var bars='';for(var i=0;i<22;i++){bars+='<i style="height:'+(20+Math.round(Math.abs(Math.sin(i*1.3))*70))+'%"></i>';}
- return '<div class="voz"><button class="play" onclick="tocar(this)">&#9654;</button><div class="wave">'+bars+'</div><span class="dur">0:22</span></div>';
+ var ds=src?' data-src="'+src+'"':'';
+ return '<div class="voz"><button class="play"'+ds+' onclick="tocar(this)">&#9654;</button><div class="wave">'+bars+'</div><span class="dur">&#128266; voz</span></div>';
 }
 var _au=null;
 function tocar(btn){
- var d=SEL?byId(SEL):null;var src=(d&&d.audio)?d.audio:AUDIO;
+ var src=btn.getAttribute('data-src');
+ if(!src){var d=SEL?byId(SEL):null;src=(d&&d.audio)?d.audio:AUDIO;}
  if(!src){alert('Audio nao disponivel.');return;}
  if(_au){_au.pause();}
  _au=new Audio(src);_au.play();btn.innerHTML='&#10073;&#10073;';
@@ -429,11 +431,18 @@ function enviarMsg(){
  i.value='';box.scrollTop=box.scrollHeight;
 }
 function enviarAudio(){
- var i=document.getElementById('cin'),box=document.getElementById('chatbox');if(!box)return;
+ var i=document.getElementById('cin');if(!document.getElementById('chatbox'))return;
  var txt=(i&&i.value.trim())||'';
- var cap=txt?'<div class="vozcap">&#128172; '+esc(txt)+'</div>':'';
- box.insertAdjacentHTML('beforeend','<div class="msg saida"><div class="h">RECUPERA.AI &#129302; &middot; audio</div>'+vozHTML()+cap+'</div>');
- if(i)i.value='';box.scrollTop=box.scrollHeight;
+ if(!txt){alert('Digite a mensagem para gerar o audio.');return;}
+ if(i)i.value='';
+ var cap='<div class="vozcap">&#128172; '+esc(txt)+'</div>';
+ function push(inner){var b=document.getElementById('chatbox');b.insertAdjacentHTML('beforeend','<div class="msg saida">'+inner+'</div>');b.scrollTop=b.scrollHeight;}
+ push('<div class="h">RECUPERA.AI &#129302; &middot; gerando audio...</div>'+cap);
+ var slot=document.getElementById('chatbox').lastChild;
+ fetch('/api/voz?texto='+encodeURIComponent(txt)).then(function(r){if(!r.ok)throw 0;return r.blob();})
+  .then(function(b){var u=URL.createObjectURL(b);slot.innerHTML='<div class="h">RECUPERA.AI &#129302; &middot; audio (gerado na hora)</div>'+vozHTML(u)+cap;
+    var pb=slot.querySelector('.play');if(pb)tocar(pb);})
+  .catch(function(){slot.innerHTML='<div class="h">RECUPERA.AI &#129302; &middot; audio</div>'+vozHTML('')+cap;});
 }
 
 /* ---- relatorios ---- */
